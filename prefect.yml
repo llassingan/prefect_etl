@@ -1,0 +1,33 @@
+# generic metadata
+prefect-version: null
+name: null
+
+# preparation steps
+build: null
+push: null
+
+# runtime steps
+pull: null
+
+# deployment configurations
+deployments:
+  - name: deployment-1
+    version: null
+    tags: ["dev"]
+    description: null
+    schedule: null
+    entrypoint: opt/prefect/flows/pg_to_pg_etl.py:test_flow
+    parameters:
+        name: "andi"
+    work_pool:
+        name: testworkers
+        work_queue_name: default
+    logging:
+      level: INFO
+      handlers:
+        - type: file
+          filename: /logs/prefect.log
+          level: INFO
+          formatter: '%(asctime)s - %(levelname)s - %(message)s'
+        - type: stream
+          level: INFO

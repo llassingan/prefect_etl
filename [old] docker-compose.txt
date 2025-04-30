@@ -1,0 +1,119 @@
+# version: '3.8'
+
+# services:
+#   prefect:
+#     image: prefecthq/prefect:2.14.15-python3.11
+#     container_name: prefect
+#     environment:
+#       - PREFECT_LOGGING_LEVEL=INFO
+#       - PREFECT_API_DATABASE_CONNECTION_URL=sqlite+aiosqlite:///opt/prefect_data/prefect.db
+#     volumes:
+#       - ./flows:/opt/prefect/flows
+#       - ./utils:/opt/prefect/utils
+#       - ./logs:/logs
+#       - ./prefect_data:/opt/prefect_data:rw        # ← mount your host folder here
+#       # - ./prefect.yaml:/opt/prefect/prefect.yaml
+#       - ./deployments:/opt/prefect/deployments
+#     working_dir: /opt/prefect
+#     user: "root"
+#     command: >
+#       bash -c "
+#         mkdir -p /opt/prefect_data &&
+#         prefect config set PREFECT_API_DATABASE_CONNECTION_URL=sqlite+aiosqlite:///opt/prefect_data/prefect.db &&
+#         prefect server start
+#       "
+#     ports:
+#       - 4200:4200  # Prefect UI (accessible on localhost:4200)
+
+services:
+  database:
+    image: postgres:alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=prefect
+    expose:
+      - 5432
+    volumes: 
+      - db:/var/lib/postgresql/data
+    profiles: ["server"]
+  
+  ### MinIO for flow storage
+  minio:
+    image: minio/minio:latest
+    entrypoint: ["minio", "server", "--address", "0.0.0.0:9000", "--console-address", "0.0.0.0:9001", "/data"]
+    volumes:
+      - "minio:/data"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    profiles: ["minio"]
+
+  ### Prefect Server API and UI
+  server:
+    image: prefecthq/prefect:3-python3.12
+    restart: always
+    volumes:
+      - prefect:/root/.prefect
+      - ./flows:/opt/prefect/flows
+      - ./utils:/opt/prefect/utils
+      - ./logs:/prefect-logs
+      # - ./prefect_data:/opt/prefect_data:rw        # ← mount your host folder here
+      # - ./prefect.yaml:/opt/prefect/prefect.yaml
+      - ./deployments:/opt/prefect/deployments
+    # entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "server", "start"]
+    command:
+      bash -c "
+      prefect server start &&
+      deploy.sh"
+    environment:
+      - PREFECT_UI_URL=http://127.0.0.1:4200/api
+      - PREFECT_API_URL=http://127.0.0.1:4200/api
+      - PREFECT_LOGGING_LEVEL=INFO
+      - PREFECT_LOGGING_HANDLERS_LOG_FILE_FILENAME=/prefect-logs/server.log
+      # If you want to access Prefect Server UI from anywhere other than the Docker host machine, you will need to change
+      # PREFECT_UI_URL and PREFECT_API_URL to match the external hostname/IP of the host machine. For example:
+      # - PREFECT_UI_URL=http://external-ip:4200/api
+      # - PREFECT_API_URL=http://external-ip:4200/api
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+      - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://postgres:postgres@database:5432/prefect
+      # Uncomment the following line if you want to use the 'S3 Bucket' storage block instead of the older 'S3' storage
+      # - EXTRA_PIP_PACKAGES=prefect-aws
+    ports:
+      - 4200:4200
+    depends_on:
+      - database
+    profiles: ["server"]
+
+  ## Prefect Worker
+  worker:
+    image: prefecthq/prefect:3-python3.12
+    restart: always
+    entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "worker", "start", "-p", "YOUR_WORK_QUEUE_NAME"]
+    environment:
+      - PREFECT_API_URL=http://server:4200/api
+#       Use PREFECT_API_KEY if connecting the worker to Prefect Cloud
+#     - PREFECT_API_KEY=YOUR_API_KEY
+    profiles: ["worker"]
+
+  ### Prefect CLI
+#   cli:
+#     image: prefecthq/prefect:3-python3.12
+#     entrypoint: "bash"
+#     working_dir: "/root/flows"
+#     volumes:
+#       - "./flows:/root/flows"
+#     environment:
+#       - PREFECT_API_URL=http://server:4200/api
+# #       Use PREFECT_API_KEY to use the CLI to interact with Prefect Cloud
+# #     - PREFECT_API_KEY=YOUR_API_KEY
+#     profiles: ["cli"]
+      
+volumes:
+  prefect:
+  db:
+  minio:
+networks:
+  default:
+    name: prefect-network
