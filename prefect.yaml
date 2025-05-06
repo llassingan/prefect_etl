@@ -16,18 +16,18 @@ deployments:
     tags: ["dev"]
     description: null
     schedule: null
-    entrypoint: opt/prefect/flows/pg_to_pg_etl.py:test_flow
+    entrypoint: flows/pg_to_pg_etl.py:greetings
     parameters:
         name: "andi"
     work_pool:
-        name: testworkers
+        name: default-agent-pool
         work_queue_name: default
-    logging:
-      level: INFO
-      handlers:
-        - type: file
-          filename: /logs/prefect.log
-          level: INFO
-          formatter: '%(asctime)s - %(levelname)s - %(message)s'
-        - type: stream
-          level: INFO
+    # logging:
+    #   level: INFO
+    #   handlers:
+    #     - type: file
+    #       filename: /logs/prefect.log
+    #       level: INFO
+    #       formatter: '%(asctime)s - %(levelname)s - %(message)s'
+    #     - type: stream
+    #       level: INFO
