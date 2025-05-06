@@ -16,18 +16,9 @@ deployments:
     tags: ["dev"]
     description: null
     schedule: null
-    entrypoint: flows/pg_to_pg_etl.py:greetings
+    entrypoint: flows/pg_to_pg_etl.py:greetings #na fungsi flow nya
     parameters:
-        name: "andi"
+        name: "andi"  #default parameter
     work_pool:
-        name: default-agent-pool
+        name: default-agent-pool #workpool
         work_queue_name: default
-    # logging:
-    #   level: INFO
-    #   handlers:
-    #     - type: file
-    #       filename: /logs/prefect.log
-    #       level: INFO
-    #       formatter: '%(asctime)s - %(levelname)s - %(message)s'
-    #     - type: stream
-    #       level: INFO
