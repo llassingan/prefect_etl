@@ -4,7 +4,7 @@ import sys
 import os
 
 # Add the utils directory to the path so we can import custom_log_handler
-sys.path.append("/opt/prefect")
+sys.path.append("/opt/prefect/flows")
 from utils.logger import setup_file_logging
 
 @task

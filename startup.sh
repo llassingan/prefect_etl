@@ -1,4 +1,5 @@
 #!/bin/bash
+# make sure the EOLS to LF
 set -e
 
 echo "Starting Prefect worker setup..."
@@ -10,8 +11,8 @@ pip install python-json-logger  # Required for JSON logging
 
 
 # Create work pool if it doesn't exist
-# echo "Creating work pool if needed..."
-# prefect work-pool create programdefaultworkers --type process || echo "Work pool already exists"
+echo "Creating work pool if needed..."
+prefect work-pool create default-agent-pool --type process || echo "Work pool already exists"
 
 # Deploy using prefect.yaml
 echo "Creating/updating deployments from prefect.yaml..."
