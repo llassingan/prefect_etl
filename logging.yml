@@ -39,21 +39,24 @@ handlers:
     filename: /logs/errors.log
     maxBytes: 10485760  # 10MB
     backupCount: 5
+  database:
+    class: prefect.logging.handlers.APILogHandler
+    level: INFO
 
 loggers:
   prefect:
     level: INFO
-    handlers: [console, flow_runs_file]
+    handlers: [console, flow_runs_file,database]
     propagate: false
   
   prefect.flow_runs:
     level: INFO
-    handlers: [console, flow_runs_file]
+    handlers: [console, flow_runs_file,database]
     propagate: false
   
   prefect.tasks:
     level: INFO
-    handlers: [console, tasks_file]
+    handlers: [console, tasks_file,database]
     propagate: false
   
   prefect.extra:
