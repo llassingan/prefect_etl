@@ -19,10 +19,9 @@ services:
     restart: always
     volumes:
       - ./flows:/opt/prefect/flows
-      # - ./utils:/opt/prefect/utils
       - ./logs:/logs
       - ./prefect.yaml:/opt/prefect/prefect.yaml
-      - ./logging.yml:/opt/prefect/logging.yml
+      - ./logging.yml:/opt/prefect/logging.yml #aktifin kalau mau ada logfile
     command:
       bash -c "
       prefect server start"
@@ -32,7 +31,7 @@ services:
       - PREFECT_LOGGING_LEVEL=INFO
       - PREFECT_LOGGING_HANDLERS_LOG_FILE_FILENAME=/logs/server.log
       # Enable file logging
-      - PREFECT_LOGGING_SETTINGS_PATH=/opt/prefect/logging.yml
+      - PREFECT_LOGGING_SETTINGS_PATH=/opt/prefect/logging.yml #aktifin kalau mau ada logfile
       - PREFECT_SERVER_API_HOST=0.0.0.0
       - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://postgres:postgres@database:5432/prefect
     healthcheck:
@@ -52,12 +51,11 @@ services:
     restart: always
     volumes:
       - ./flows:/opt/prefect/flows
-      # - ./utils:/opt/prefect/utils
       - ./logs:/logs
       - ./prefect.yaml:/opt/prefect/prefect.yaml
       - ./requirements.txt:/opt/prefect/requirements.txt
       - ./startup.sh:/opt/prefect/startup.sh
-      - ./logging.yml:/opt/prefect/logging.yml
+      - ./logging.yml:/opt/prefect/logging.yml #aktifin kalau mau ada logfile
     command: 
       bash -c "/opt/prefect/startup.sh"
     environment:
@@ -65,7 +63,7 @@ services:
       - PREFECT_LOGGING_LEVEL=INFO
       - PREFECT_LOGGING_HANDLERS_LOG_FILE_FILENAME=/logs/worker.log
       # Enable file logging
-      - PREFECT_LOGGING_SETTINGS_PATH=/opt/prefect/logging.yml
+      - PREFECT_LOGGING_SETTINGS_PATH=/opt/prefect/logging.yml #aktifin kalau mau ada logfile
     depends_on:
       - server
 
