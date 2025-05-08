@@ -10,7 +10,9 @@ from sqlalchemy.engine import Connection
 sys.path.append("/opt/prefect/flows")
 from utils.logger import setup_file_logging
 from db.database_conn import get_connection_postgres
+from utils.config import settings 
 from db.sql_resource import SQL_RESOURCES
+
 
 def MappingFlow(list_of_query: list[str]) -> dict[str, str]:
     """
@@ -52,12 +54,14 @@ def UpdateResource():
         "initTanggalJatuhTempoRencana",
         "syncGLAccountName",
     ]
+    DB_SCHEMA = settings.DB_SCHEMA
     try:
         # Begin a transaction
         logger.info(f"begin transaction..")
         with conn.begin():
             logger.info(f"getting list of flows..")
             flows = MappingFlow(SQLFlows)
+            conn.execute(f"SET search_path TO {DB_SCHEMA}")
             for flow,sql in flows.items():
                 logger.info(f"start executing flow: {flow}")
                 conn.execute(
@@ -78,7 +82,7 @@ def UpdateResource():
 @flow(name="data_init")
 def DataInit():
     flow_name = "data_init"
-    logger = setup_file_logging(flow_name=flow_name)
+    logger = get_run_logger()
     logger.info(f"starting flow: {flow_name}")
     UpdateResource()
     logger.info(f"flow {flow_name} has finished")
