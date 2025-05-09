@@ -1,102 +1,76 @@
-from prefect import flow, task
+from prefect import task
 from prefect.logging import get_run_logger
-import sys
-import os
-from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.engine import Connection
+from sqlalchemy import text
+import sys
+import os
 
 # Add the utils directory to the path so we can import custom_log_handler
-sys.path.append("/opt/prefect/flows")
-from utils.logger import setup_file_logging
-from db.database_conn import get_connection_postgres
-from db.sql_resource import SQL_RESOURCES
-from utils.config import settings 
+sys.path.append("/opt/prefect/script")
+from ..db.database_conn import get_connection_postgres
+from ..utils.config import settings 
 
 
-@task
-def PrepareTable():
-  
-
-def main(config):
-  global app
-  
-  batch_sql._CONSOLE = False
-  batch_sql.app      = app
-  
-  batch_sql.printOut('Preparing core batch process temporary tables')
-  createTmpTransaction(config)
-  createTmpTransfer(config)
-  createStandingInstruction(config)
-  createProfitDistribution(config)
-  #createTmpDeletedTransaction(config)
-  createDPK(config)
-  createSavingProfitDistribution(config)
-  createSavingAverageBalance(config)
-  createAdmCost(config)
-  createGLTransfer(config)
-  createBHRAK(config)
-  create_timedeposit_revaccrual(config)
-  createPremiAsuransi(config)
-  createTmpDorman(config)
-  createTmpDepreciable(config)
-  batch_sql.printOut('Creating temporary tables done')
-
-  resetTmpUploadTrx(config)
-  
-def resetTmpUploadTrx(config):
-  batch_sql.printOut('Reset tmp upload trx') 
-  listTable = [
-    config.MapDBTableName('tmp.uploadtrxitem')
-    , config.MapDBTableName('tmp.uploadtrxitem_balance')
-    , config.MapDBTableName('tmp.uploadtrxitem_transaksi')
-  ]
-  
-  for tableName in listTable :
-    batch_sql.printOut('Truncate table {0}'.format(tableName)) 
-    batch_sql.runSQL(config, '''TRUNCATE TABLE {0}'''.format(tableName))
-  
-def createTmpDorman(config):
-  batch_sql.printOut('Create tmp.dorman_candidate')  
-  params = {
-    'TABLE': config.MapDBTableName('tmp.dorman_candidate')
-  }
-  
+def resetTmpUploadTrx(conn, log):
+  log.info(f"Reset tmp upload trx") 
+  params= {"TABLE" : ["tmp.uploadtrxitem", "tmp.uploadtrxitem_balance","tmp.uploadtrxitem_transaksi"]}
   try:
-    batch_sql.runSQL(config, '''DROP TABLE {TABLE}'''.format(**params))
-  except:
-    pass
-  
-  batch_sql.runSQL(config, '''
-     create table {TABLE} 
-    ( nomor_rekening VARCHAR(20) primary key
-      , Saldo numeric(36,10)
-      , Tgl_Trans_Cabang_Terakhir timestamp(6)
-      , Tgl_Trans_Echannel_Terakhir timestamp(6)
-      , Tgl_Trans_Terakhir timestamp(6)  
-      , Tanggal_Buka timestamp(6)
-      , Tanggal_Acuan_Dormant varchar(1)
-      , Kode_Produk varchar(10)
-      , Jumlah_Hari_Tidak_Aktif integer
-      , param_Hari_Tidak_Aktif integer
-      , saldo_minimum numeric(36,2)
-      , Saldo_Minimum_Tidak_Aktif numeric(36,2)
-      , status_rekening integer
-      , status_rekening_update integer
-      , Process_Status integer
-    )
-  '''.format(**params)
-  )
-  
-  
-  
-  batch_sql.runSQL(config, '''TRUNCATE TABLE {TABLE}'''.format(**params))
+    with conn:
+        with conn.cursor() as cur:
+            for tableName in params['TABLE']:
+              log.info(f"Truncate table {tableName}") 
+              cur.execute(text(f"""TRUNCATE TABLE {tableName}"""))
+    log.info("trasanction committed")
+  except SQLAlchemyError as e:
+    log.error(f"Database error occurred: {e}. Rolled back")
 
-def createTmpTransfer(config):
-  batch_sql.printOut('Create tmp.transfer_candidate')  
+  except Exception as e:
+    log.error(f"Unexpected error: {e}. Rolled back")
+  
+ 
+def createTmpDorman(conn, log):
+  log.info(f"Create tmp.dorman_candidate")
+  params= {"TABLE" : "tmp.dorman_candidate"}
+  try:
+    with conn:
+        with conn.cursor() as cur:
+            log.info(f"Drop table {params['TABLE']}") 
+            cur.execute(text(f"""DROP TABLE {params['TABLE']}"""))
+            log.info(f"Create table {params['TABLE']}") 
+            cur.execute(text(f"""
+              create table {params['TABLE']} 
+              ( nomor_rekening VARCHAR(20) primary key
+                , Saldo numeric(36,10)
+                , Tgl_Trans_Cabang_Terakhir timestamp(6)
+                , Tgl_Trans_Echannel_Terakhir timestamp(6)
+                , Tgl_Trans_Terakhir timestamp(6)  
+                , Tanggal_Buka timestamp(6)
+                , Tanggal_Acuan_Dormant varchar(1)
+                , Kode_Produk varchar(10)
+                , Jumlah_Hari_Tidak_Aktif integer
+                , param_Hari_Tidak_Aktif integer
+                , saldo_minimum numeric(36,2)
+                , Saldo_Minimum_Tidak_Aktif numeric(36,2)
+                , status_rekening integer
+                , status_rekening_update integer
+                , Process_Status integer
+              )
+            """))
+            log.info(f"Truncate table {params['TABLE']}") 
+            cur.execute(text(f"""TRUNCATE TABLE {params['TABLE']}"""))
+    log.info("trasanction committed")
+  except SQLAlchemyError as e:
+    log.error(f"Database error occurred: {e}. Rolled back")
+
+  except Exception as e:
+    log.error(f"Unexpected error: {e}. Rolled back")
+
+def createTmpTransfer(conn, log):
+  log.info(f"Create tmp.transfer_candidate")  
   params = {
-    'TABLE': config.MapDBTableName('tmp.transfer_candidate')
-    , 'SEQUENCE': config.MapDBTableName('tmp.seq_remittance_ref')
+    "TABLE": "tmp.transfer_candidate",
+    "SEQUENCE": "tmp.seq_remittance_ref"
   }
   #try:
   #  batch_sql.runSQL(config, '''DROP TABLE {TABLE}'''.format(**params))
@@ -128,13 +102,62 @@ def createTmpTransfer(config):
   # '''.format(**params)
   #)
   # replace drop and recreate by below scripts
-  batch_sql.runSQL(config, '''TRUNCATE TABLE {TABLE}'''.format(**params))
-
   try:
-    batch_sql.runSQL(config, '''DROP SEQUENCE {SEQUENCE}'''.format(**params))
-  except:
-    pass
-  batch_sql.runSQL(config, ''' create sequence {SEQUENCE} '''.format(**params))
+    with conn:
+        with conn.cursor() as cur:
+            log.info(f"Truncate table {params['TABLE']}") 
+            cur.execute(text(f"""TRUNCATE TABLE {params['TABLE']}"""))
+            log.info(f"drop sequence {params['SEQUENCE']}") 
+            cur.execute(text(f"""DROP SEQUENCE {params['SEQUENCE']}"""))
+            log.info(f"create sequence {params['SEQUENCE']}") 
+            cur.execute(text(f"""CREATE SEQUENCE {params['SEQUENCE']}"""))
+    log.info("trasanction committed")
+  except SQLAlchemyError as e:
+    log.error(f"Database error occurred: {e}. Rolled back")
+
+@task
+def PrepareTable():
+  conn: Connection = get_connection_postgres()
+  logger = get_run_logger()
+  logger.info("Starting task")
+  try:
+    resetTmpUploadTrx(conn,logger)
+    createTmpDorman(conn,logger)
+    createTmpTransfer(conn,logger)
+  finally:
+    conn.close()
+    logger.info("Connection closed")
+
+
+  
+
+def main(config):
+  global app
+  
+  batch_sql._CONSOLE = False
+  batch_sql.app      = app
+  
+  batch_sql.printOut('Preparing core batch process temporary tables')
+  createTmpTransaction(config)
+  createTmpTransfer(config)
+  createStandingInstruction(config)
+  createProfitDistribution(config)
+  #createTmpDeletedTransaction(config)
+  createDPK(config)
+  createSavingProfitDistribution(config)
+  createSavingAverageBalance(config)
+  createAdmCost(config)
+  createGLTransfer(config)
+  createBHRAK(config)
+  create_timedeposit_revaccrual(config)
+  createPremiAsuransi(config)
+  createTmpDorman(config)
+  createTmpDepreciable(config)
+  batch_sql.printOut('Creating temporary tables done')
+
+  resetTmpUploadTrx(config)
+  
+
           
 def createTmpTransaction(config):
   batch_sql.printOut('Create tmp.detil_candidate')

@@ -18,7 +18,7 @@ services:
     image: prefecthq/prefect:3-python3.12
     restart: always
     volumes:
-      - ./flows:/opt/prefect/flows
+      - ./script:/opt/prefect/script
       - ./logs:/logs
       - ./prefect.yaml:/opt/prefect/prefect.yaml
       - ./logging.yml:/opt/prefect/logging.yml #aktifin kalau mau ada logfile
@@ -50,7 +50,7 @@ services:
     image: prefecthq/prefect:3-python3.12
     restart: always
     volumes:
-      - ./flows:/opt/prefect/flows
+      - ./script:/opt/prefect/script
       - ./logs:/logs
       - ./prefect.yaml:/opt/prefect/prefect.yaml
       - ./requirements.txt:/opt/prefect/requirements.txt

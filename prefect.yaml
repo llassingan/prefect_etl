@@ -16,7 +16,7 @@ deployments:
     tags: ["dev"]
     description: null
     schedule: null
-    entrypoint: flows/pg_to_pg_etl.py:greetings #na fungsi flow nya
+    entrypoint: script/flows/pg_to_pg_etl.py:greetings #na fungsi flow nya
     parameters:
         name: "andi"  #default parameter
     work_pool:

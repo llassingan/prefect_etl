@@ -1,4 +1,4 @@
-from prefect import flow, task
+from prefect import task
 from prefect.logging import get_run_logger
 import sys
 import os
@@ -7,11 +7,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.engine import Connection
 
 # Add the utils directory to the path so we can import custom_log_handler
-sys.path.append("/opt/prefect/flows")
-from utils.logger import setup_file_logging
-from db.database_conn import get_connection_postgres
-from utils.config import settings 
-from db.sql_resource import SQL_RESOURCES
+sys.path.append("/opt/prefect/script")
+from ..db.database_conn import get_connection_postgres
+from ..utils.config import settings 
+from ..db.sql_resource import SQL_RESOURCES
 
 
 def MappingFlow(list_of_query: list[str]) -> dict[str, str]:
@@ -71,34 +70,10 @@ def UpdateResource():
 
     except SQLAlchemyError as e:
         logger.error(f"Database error occurred: {e}. Rolled back", exc_info=True)
-        lo
+        
 
     except Exception as e:
         logger.error(f"Unexpected error: {e}. Rolled back", exc_info=True)
 
     finally:
         conn.close()
-
-@flow(name="data_init")
-def DataInit():
-    flow_name = "data_init"
-    logger = get_run_logger()
-    logger.info(f"starting flow: {flow_name}")
-    UpdateResource()
-    logger.info(f"flow {flow_name} has finished")
-
-    # dictParam.update(
-    #     dbutil.mapDBTableNames(
-    #         config,
-    #         [
-    #             "RekeningLiabilitas", # ini buat mapping tabel, ntar dipake di bawah
-    #             "Produk",
-    #             "Deposito",
-    #             "RekeningTransaksi",
-    #             "RekeningRencana",
-    #             "Transaksi",
-    #             "DetilTransaksi",
-    #             "Account",
-    #         ],h
-    #     )
-    # )
